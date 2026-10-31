@@ -2,6 +2,19 @@ const ApiError = require('../utils/ApiError');
 
 // Central error handler – must be registered LAST in Express middleware chain
 const errorHandler = (err, req, res, next) => {
+  // Multer file upload errors
+  if (err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, message: 'File size exceeds the 5MB limit' });
+    }
+    return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+  }
+
+  // Mongoose CastError (invalid ObjectId)
+  if (err.name === 'CastError') {
+    return res.status(400).json({ success: false, message: `Invalid identifier format: ${err.value}` });
+  }
+
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const errors = Object.values(err.errors).map((e) => e.message);
@@ -10,7 +23,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const field = err.keyValue ? Object.keys(err.keyValue)[0] : 'record';
     return res.status(409).json({ success: false, message: `${field} already exists` });
   }
 
@@ -31,11 +44,11 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Unexpected errors – don't leak details in production
+  // Unexpected errors – don't leak internal details
   console.error('Unhandled error:', err);
   res.status(500).json({
     success: false,
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
   });
 };
 
