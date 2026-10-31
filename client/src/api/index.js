@@ -17,10 +17,20 @@ export const authAPI = {
 export const postsAPI = {
   getFeed: (params) => api.get('/posts', { params }),
   getPost: (id) => api.get(`/posts/${id}`),
-  createPost: (data) => api.post('/posts', data),
+  createPost: (data) => {
+    if (data instanceof FormData) {
+      return api.post('/posts', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return api.post('/posts', data);
+  },
   updatePost: (id, data) => api.put(`/posts/${id}`, data),
   deletePost: (id) => api.delete(`/posts/${id}`),
   toggleLike: (id) => api.post(`/posts/${id}/like`),
+  toggleBookmark: (id) => api.post(`/posts/${id}/bookmark`),
+  getTrendingTags: () => api.get('/posts/trending-tags'),
+  searchMentions: (q) => api.get('/posts/mentions/search', { params: { q } }),
   getComments: (id) => api.get(`/posts/${id}/comments`),
   addComment: (id, data) => api.post(`/posts/${id}/comments`, data),
   deleteComment: (postId, commentId) => api.delete(`/posts/${postId}/comments/${commentId}`),
