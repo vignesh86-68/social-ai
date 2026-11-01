@@ -1,15 +1,38 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
+const readCookie = (name) => {
+  const entry = document.cookie.split('; ').find((value) => value.startsWith(`${name}=`));
+  return entry ? decodeURIComponent(entry.slice(name.length + 1)) : '';
+};
+
+let csrfRequest;
+const ensureCsrfToken = async () => {
+  const existing = readCookie('csrfToken');
+  if (existing) return existing;
+  if (!csrfRequest) {
+    csrfRequest = axios.get(`${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/csrf`, { withCredentials: true })
+      .then(() => readCookie('csrfToken'))
+      .finally(() => { csrfRequest = null; });
+  }
+  return csrfRequest;
+};
+
 // ─── Request interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
-  (config) => config,
+  async (config) => {
+    if (!['get', 'head', 'options'].includes((config.method || 'get').toLowerCase())) {
+      const csrfToken = await ensureCsrfToken();
+      if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 

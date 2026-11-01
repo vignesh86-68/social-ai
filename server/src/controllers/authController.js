@@ -4,11 +4,14 @@ const LoginActivity = require('../models/LoginActivity');
 const ApiError = require('../utils/ApiError');
 const tokenService = require('../services/tokenService');
 const emailService = require('../services/emailService');
+const crypto = require('crypto');
+const AdminInvitation = require('../models/AdminInvitation');
+const AdminAuditLog = require('../models/AdminAuditLog');
 
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? (process.env.COOKIE_SAMESITE || 'none') : 'lax',
   path: '/',
 };
 
@@ -101,7 +104,7 @@ exports.login = async (req, res, next) => {
     // Admin login notification (email + real-time socket done in route layer via hook)
     if (user.role === 'admin') {
       emailService
-        .sendAdminLoginEmail(user.email, user.username, ip, new Date().toUTCString())
+        .sendAdminLoginAlert(user.email, user.username, ip, userAgent)
         .catch(console.error);
     }
 
@@ -118,9 +121,51 @@ exports.login = async (req, res, next) => {
           displayName: user.displayName,
           isVerified: user.isVerified,
         },
-        accessToken,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Accept administrator invitation ─────────────────────────────────────────
+exports.acceptAdminInvitation = async (req, res, next) => {
+  try {
+    const { token, username, password, displayName } = req.body;
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const invitation = await AdminInvitation.findOne({
+      tokenHash,
+      expiresAt: { $gt: new Date() },
+      acceptedAt: null,
+      revokedAt: null,
+    }).select('+tokenHash');
+
+    if (!invitation) throw ApiError.badRequest('Invitation is invalid, expired, or already used');
+    if (await User.exists({ $or: [{ email: invitation.email }, { username }] })) {
+      throw ApiError.conflict('Email or username is already in use');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({
+      username,
+      email: invitation.email,
+      passwordHash,
+      displayName: displayName || username,
+      role: 'admin',
+      isVerified: true,
+    });
+
+    invitation.acceptedAt = new Date();
+    await invitation.save();
+    await AdminAuditLog.create({
+      admin: invitation.invitedBy,
+      action: 'accept_admin_invitation',
+      targetType: 'User',
+      targetId: user._id,
+      metadata: { email: user.email, invitedBy: invitation.invitedBy },
+    });
+
+    res.status(201).json({ success: true, message: 'Administrator account created' });
   } catch (err) {
     next(err);
   }
@@ -145,7 +190,6 @@ exports.refresh = async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        accessToken: result.accessToken,
         user: {
           _id: user._id,
           username: user.username,

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  Sparkles, Home, Bell, Wand2, User, LogOut, ChevronLeft,
+  Sparkles, Home, Bell, Wand2, User, LogOut, ChevronLeft, Activity,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
@@ -10,6 +10,7 @@ const NAV = [
   { to: '/', icon: Home, label: 'Feed', exact: true },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/ai-studio', icon: Wand2, label: 'AI Studio' },
+  { to: '/signal-intelligence', icon: Activity, label: 'Signal Intelligence' },
 ];
 
 export default function Sidebar({ open, onClose }) {
@@ -25,7 +26,7 @@ export default function Sidebar({ open, onClose }) {
   };
 
   return (
-    <aside style={{
+    <aside className={`sidebar${open ? ' mobile-open' : ''}`} style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -126,4 +127,3 @@ export default function Sidebar({ open, onClose }) {
     </aside>
   );
 }
-

@@ -72,10 +72,10 @@ export default function AdminAuditLogs() {
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
-                    {log.targetModel} {log.targetId ? `(${log.targetId.slice(-6)})` : ''}
+                    {log.targetType} {log.targetId ? `(${log.targetId.slice(-6)})` : ''}
                   </td>
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {log.details ? JSON.stringify(log.details) : '-'}
+                    {log.metadata ? JSON.stringify(log.metadata) : '-'}
                   </td>
                 </tr>
               ))}
@@ -86,4 +86,3 @@ export default function AdminAuditLogs() {
     </div>
   );
 }
-

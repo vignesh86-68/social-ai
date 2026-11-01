@@ -11,6 +11,7 @@ const path = require('path');
 const corsOptions = require('./src/config/cors');
 const { apiLimiter } = require('./src/middleware/rateLimiter');
 const errorHandler = require('./src/middleware/errorHandler');
+const { csrfProtection } = require('./src/middleware/csrf');
 
 // Route imports
 const authRoutes = require('./src/routes/auth');
@@ -52,6 +53,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────
 app.use('/api/', apiLimiter);
+app.use('/api', csrfProtection);
 
 // ─── Database readiness check ───────────────────────────────────────────────
 const mongoose = require('mongoose');

@@ -4,9 +4,9 @@ const app = require('../app');
 const User = require('../src/models/User');
 const Follow = require('../src/models/Follow');
 const Notification = require('../src/models/Notification');
+const { connectTestDatabase, disconnectTestDatabase } = require('./testDatabase');
 
-// Isolated local test database
-const TEST_URI = process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/social-ai-security-test';
+jest.setTimeout(60000);
 
 describe('Security & QA Integrity Audit: Phase A & Phase B', () => {
   let userAToken = '';
@@ -16,10 +16,7 @@ describe('Security & QA Integrity Audit: Phase A & Phase B', () => {
   let suspendedUserId = null;
 
   beforeAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-    await mongoose.connect(TEST_URI);
+    await connectTestDatabase();
 
     // Clean test collections
     await Promise.all([
@@ -69,7 +66,7 @@ describe('Security & QA Integrity Audit: Phase A & Phase B', () => {
       Follow.deleteMany({}),
       Notification.deleteMany({}),
     ]);
-    await mongoose.disconnect();
+    await disconnectTestDatabase();
   });
 
   // ─── 1. Authentication & Authorization Guards ──────────────────────────────
@@ -222,4 +219,3 @@ describe('Security & QA Integrity Audit: Phase A & Phase B', () => {
     });
   });
 });
-

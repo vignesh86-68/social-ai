@@ -568,12 +568,12 @@ export default function Feed() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '1.5rem', alignItems: 'start' }}>
+    <div className="feed-page-grid" style={{ display: 'grid', gap: '1.5rem', alignItems: 'start' }}>
       {/* ─── Main Feed Column ─────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
         {/* Feed Tabs Navigation */}
         <div
-          className="card"
+          className="card feed-tabs"
           style={{
             padding: '0.5rem',
             display: 'flex',
@@ -892,7 +892,7 @@ export default function Feed() {
           )}
 
           {/* Action Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="post-composer-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 ref={fileInputRef}

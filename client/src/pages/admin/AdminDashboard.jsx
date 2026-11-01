@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
-import { Users, UserCheck, UserX, FileText, MessageSquare, Activity } from 'lucide-react';
+import { Users, UserCheck, UserX, FileText, MessageSquare, Activity, UserRoundCheck, ShieldAlert } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -32,11 +32,14 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: 'Total Users', value: stats?.totalUsers || 0, icon: Users, color: '#6366f1' },
-    { label: 'Verified Accounts', value: stats?.verifiedUsers || 0, icon: UserCheck, color: '#22c55e' },
-    { label: 'Unverified Accounts', value: stats?.unverifiedUsers || 0, icon: UserX, color: '#f59e0b' },
-    { label: 'Total Posts', value: stats?.totalPosts || 0, icon: FileText, color: '#3b82f6' },
-    { label: 'Total Comments', value: stats?.totalComments || 0, icon: MessageSquare, color: '#ec4899' },
+    { label: 'Total Users', value: stats?.stats?.totalUsers || 0, icon: Users, color: '#6366f1' },
+    { label: 'Verified Accounts', value: stats?.stats?.verifiedUsers || 0, icon: UserCheck, color: '#22c55e' },
+    { label: 'Unverified Accounts', value: stats?.stats?.unverifiedUsers || 0, icon: UserX, color: '#f59e0b' },
+    { label: 'Total Posts', value: stats?.stats?.totalPosts || 0, icon: FileText, color: '#3b82f6' },
+    { label: 'Total Comments', value: stats?.stats?.totalComments || 0, icon: MessageSquare, color: '#ec4899' },
+    { label: 'Active Users', value: stats?.stats?.activeUsers || 0, icon: UserRoundCheck, color: '#14b8a6' },
+    { label: 'Suspended Users', value: stats?.stats?.suspendedUsers || 0, icon: ShieldAlert, color: '#ef4444' },
+    { label: 'New Users (30d)', value: stats?.stats?.newUsers || 0, icon: Activity, color: '#8b5cf6' },
   ];
 
   return (
@@ -74,9 +77,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Activity Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem' }}>
         {/* Recent Registrations */}
-        <div className="card" style={{ padding: '1.25rem' }}>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users size={18} color="var(--accent)" /> Recent Registrations
           </h3>
@@ -102,6 +105,14 @@ export default function AdminDashboard() {
                 </div>
               ))
             )}
+          </div>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>Platform engagement</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Stored interaction totals; no reach or impression estimates are shown.</p>
+            <div style={{ display: 'flex', gap: '2rem', marginTop: '1.25rem' }}>
+              <div><strong style={{ fontSize: '1.5rem' }}>{stats?.stats?.engagement?.likes || 0}</strong><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Likes</div></div>
+              <div><strong style={{ fontSize: '1.5rem' }}>{stats?.stats?.engagement?.comments || 0}</strong><div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Comments</div></div>
+            </div>
           </div>
         </div>
 
@@ -132,4 +143,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

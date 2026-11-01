@@ -5,6 +5,9 @@ const LoginActivity = require('../models/LoginActivity');
 const AdminAuditLog = require('../models/AdminAuditLog');
 const Notification = require('../models/Notification');
 const ApiError = require('../utils/ApiError');
+const crypto = require('crypto');
+const AdminInvitation = require('../models/AdminInvitation');
+const emailService = require('../services/emailService');
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 exports.getStats = async (req, res, next) => {
@@ -15,14 +18,25 @@ exports.getStats = async (req, res, next) => {
       unverifiedUsers,
       totalPosts,
       totalComments,
+      activeUsers,
+      suspendedUsers,
+      newUsers,
+      engagement,
       recentUsers,
       recentLogins,
+      recentAdminActivity,
     ] = await Promise.all([
       User.countDocuments({ role: 'user' }),
       User.countDocuments({ role: 'user', isVerified: true }),
       User.countDocuments({ role: 'user', isVerified: false }),
       Post.countDocuments(),
       Comment.countDocuments(),
+      User.countDocuments({ role: 'user', isActive: true }),
+      User.countDocuments({ role: 'user', isActive: false }),
+      User.countDocuments({ role: 'user', createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+      Post.aggregate([
+        { $group: { _id: null, likes: { $sum: '$likesCount' }, comments: { $sum: '$commentsCount' } } },
+      ]),
       User.find({ role: 'user' })
         .sort({ createdAt: -1 })
         .limit(5)
@@ -31,14 +45,29 @@ exports.getStats = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(10)
         .populate('user', 'username email role'),
+      AdminAuditLog.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('admin', 'username email'),
     ]);
 
     res.json({
       success: true,
       data: {
-        stats: { totalUsers, verifiedUsers, unverifiedUsers, totalPosts, totalComments },
+        stats: {
+          totalUsers,
+          verifiedUsers,
+          unverifiedUsers,
+          activeUsers,
+          suspendedUsers,
+          newUsers,
+          totalPosts,
+          totalComments,
+          engagement: engagement[0] || { likes: 0, comments: 0 },
+        },
         recentUsers,
         recentLogins,
+        recentAdminActivity,
       },
     });
   } catch (err) {
@@ -213,6 +242,63 @@ exports.getAllPosts = async (req, res, next) => {
       success: true,
       data: { posts, pagination: { page, limit, total, pages: Math.ceil(total / limit) } },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.createInvitation = async (req, res, next) => {
+  try {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const invitation = await AdminInvitation.create({
+      email: req.body.email,
+      tokenHash: crypto.createHash('sha256').update(rawToken).digest('hex'),
+      invitedBy: req.user._id,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    await emailService.sendAdminInvitationEmail(invitation.email, rawToken);
+    await AdminAuditLog.create({
+      admin: req.user._id,
+      action: 'invite_admin',
+      targetType: 'System',
+      metadata: { email: invitation.email, invitationId: invitation._id },
+    });
+    res.status(201).json({
+      success: true,
+      data: { invitation: { _id: invitation._id, email: invitation.email, expiresAt: invitation.expiresAt } },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getInvitations = async (req, res, next) => {
+  try {
+    const invitations = await AdminInvitation.find()
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate('invitedBy', 'username email');
+    res.json({ success: true, data: { invitations } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.revokeInvitation = async (req, res, next) => {
+  try {
+    const invitation = await AdminInvitation.findByIdAndUpdate(
+      req.params.invitationId,
+      { revokedAt: new Date() },
+      { new: true }
+    );
+    if (!invitation) throw ApiError.notFound('Invitation not found');
+    await AdminAuditLog.create({
+      admin: req.user._id,
+      action: 'revoke_admin_invitation',
+      targetType: 'System',
+      metadata: { invitationId: invitation._id, email: invitation.email },
+    });
+    res.json({ success: true, message: 'Invitation revoked' });
   } catch (err) {
     next(err);
   }

@@ -11,6 +11,7 @@ export const authAPI = {
   resendVerification: (data) => api.post('/auth/resend-verification', data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
+  acceptAdminInvitation: (data) => api.post('/auth/admin-invitations/accept', data),
 };
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
@@ -62,6 +63,10 @@ export const aiAPI = {
   contentStudio: (data) => api.post('/ai/content-studio', data),
   summarize: (data) => api.post('/ai/summarize', data),
   suggestReply: (data) => api.post('/ai/suggest-reply', data),
+  communityPulse: (data) => api.post('/ai/signal/community-pulse', data),
+  audienceInsights: (data) => api.post('/ai/signal/audience-insights', data),
+  creatorNextMove: (params) => api.get('/ai/signal/creator-next-move', { params }),
+  history: (params) => api.get('/ai/signal/history', { params }),
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -74,4 +79,7 @@ export const adminAPI = {
   deletePost: (id) => api.delete(`/admin/posts/${id}`),
   deleteComment: (id) => api.delete(`/admin/comments/${id}`),
   getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+  createInvitation: (data) => api.post('/admin/invitations', data),
+  getInvitations: () => api.get('/admin/invitations'),
+  revokeInvitation: (id) => api.delete(`/admin/invitations/${id}`),
 };

@@ -44,11 +44,16 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Redact potential API keys or credentials from unexpected errors
+  const safeMessage = (err.message || 'Internal server error')
+    .replace(/key=[^&\s"'`]+/gi, 'key=[REDACTED]')
+    .replace(/AIza[0-9A-Za-z-_]{35}/g, '[REDACTED_KEY]');
+
   // Unexpected errors – don't leak internal details
-  console.error('Unhandled error:', err);
+  console.error('Unhandled error:', safeMessage);
   res.status(500).json({
     success: false,
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? safeMessage : 'Internal server error',
   });
 };
 

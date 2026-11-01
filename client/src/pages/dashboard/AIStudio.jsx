@@ -3,6 +3,17 @@ import { aiAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
 import { Bot, Sparkles, FileText, MessageCircle, Copy, Check } from 'lucide-react';
 
+function SectionList({ title, items = [] }) {
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <strong>{title}</strong>
+      <ul style={{ marginTop: '0.4rem', color: 'var(--text-secondary)' }}>
+        {items.filter(Boolean).map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+      </ul>
+    </div>
+  );
+}
+
 export default function AIStudio() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('studio'); // 'studio' | 'summarize' | 'reply'
@@ -12,6 +23,7 @@ export default function AIStudio() {
   const [tone, setTone] = useState('engaging');
   const [currentContent, setCurrentContent] = useState('');
   const [studioResult, setStudioResult] = useState('');
+  const [dnaResult, setDnaResult] = useState(null);
   const [loadingStudio, setLoadingStudio] = useState(false);
 
   // Discussion Intelligence state
@@ -71,6 +83,24 @@ export default function AIStudio() {
       toast({ message: 'Post refined successfully!', type: 'success' });
     } catch (err) {
       toast({ message: err.response?.data?.message || 'Refinement failed', type: 'error' });
+    } finally {
+      setLoadingStudio(false);
+    }
+  };
+
+  const handleContentDNA = async () => {
+    const source = currentContent.trim() || topic.trim();
+    if (!source) {
+      toast({ message: 'Provide a topic or draft for Content DNA', type: 'info' });
+      return;
+    }
+    setLoadingStudio(true);
+    try {
+      const res = await aiAPI.contentStudio({ mode: 'dna', content: source, topic, tone });
+      setDnaResult(res.data.data.result);
+      toast({ message: 'Content DNA generated for review', type: 'success' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message || 'Content DNA generation failed', type: 'error' });
     } finally {
       setLoadingStudio(false);
     }
@@ -204,6 +234,14 @@ export default function AIStudio() {
                 >
                   {loadingStudio ? 'Refining...' : 'Enhance & Polish Draft'}
                 </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleContentDNA}
+                  disabled={loadingStudio || (!currentContent.trim() && !topic.trim())}
+                  style={{ marginLeft: '0.5rem' }}
+                >
+                  {loadingStudio ? 'Building variants...' : 'Build Content DNA'}
+                </button>
               </div>
             </div>
           </div>
@@ -223,6 +261,28 @@ export default function AIStudio() {
                 </button>
               </div>
               <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '0.95rem' }}>{studioResult}</p>
+            </div>
+          )}
+          {dnaResult && (
+            <div className="card" style={{ padding: '1.5rem', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--accent)' }}>Content DNA — review before publishing</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>AI-generated drafts are never published automatically.</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '1rem' }}>
+                {['professional', 'conversational', 'educational', 'shortVersion', 'expandedVersion'].map((key) => (
+                  <label key={key} className="form-group">
+                    <span className="form-label">{key.replace(/([A-Z])/g, ' $1')}</span>
+                    <textarea className="input" rows={5} value={dnaResult[key] || ''} onChange={(event) => setDnaResult({ ...dnaResult, [key]: event.target.value })} />
+                    <button className="btn btn-secondary" type="button" onClick={() => copyToClipboard(dnaResult[key] || '')} style={{ marginTop: '0.35rem', fontSize: '0.8rem' }}>
+                      <Copy size={14} /> Copy version
+                    </button>
+                  </label>
+                ))}
+              </div>
+              <SectionList title="Headline recommendations" items={dnaResult.headlines} />
+              <SectionList title="Hashtag recommendations" items={dnaResult.hashtags} />
+              <SectionList title="Readability feedback" items={[dnaResult.readability, ...(dnaResult.improvements || [])]} />
             </div>
           )}
         </div>
@@ -343,4 +403,3 @@ export default function AIStudio() {
     </div>
   );
 }
-

@@ -14,6 +14,7 @@ import Profile from '../pages/dashboard/Profile';
 import EditProfile from '../pages/dashboard/EditProfile';
 import Notifications from '../pages/dashboard/Notifications';
 import AIStudio from '../pages/dashboard/AIStudio';
+import SignalIntelligence from '../pages/dashboard/SignalIntelligence';
 
 // Admin pages
 import AdminLayout from '../pages/admin/AdminLayout';
@@ -21,6 +22,9 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminUsers from '../pages/admin/AdminUsers';
 import AdminPosts from '../pages/admin/AdminPosts';
 import AdminAuditLogs from '../pages/admin/AdminAuditLogs';
+import AdminLogin from '../pages/admin/AdminLogin';
+import AdminAccess from '../pages/admin/AdminAccess';
+import AdminInvitationAccept from '../pages/admin/AdminInvitationAccept';
 
 // Layout
 import AppLayout from '../components/layout/AppLayout';
@@ -51,6 +55,12 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public administrator entry routes must remain reachable even when a
+            normal-user session is already present. The login handler itself
+            enforces the administrator role before entering the Command Centre. */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/invitations/accept" element={<AdminInvitationAccept />} />
+
         {/* Public auth routes */}
         <Route element={<RedirectIfAuthed />}>
           <Route path="/login" element={<Login />} />
@@ -68,6 +78,7 @@ export default function AppRouter() {
             <Route path="/profile/edit" element={<EditProfile />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/ai-studio" element={<AIStudio />} />
+            <Route path="/signal-intelligence" element={<SignalIntelligence />} />
           </Route>
         </Route>
 
@@ -78,6 +89,7 @@ export default function AppRouter() {
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/posts" element={<AdminPosts />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+            <Route path="/admin/access" element={<AdminAccess />} />
           </Route>
         </Route>
 
@@ -86,4 +98,3 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
-

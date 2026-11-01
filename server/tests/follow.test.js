@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../src/models/User');
 const Follow = require('../src/models/Follow');
+const { connectTestDatabase, disconnectTestDatabase } = require('./testDatabase');
 
-const TEST_URI = process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/social-ai-test';
+jest.setTimeout(60000);
 
 describe('Phase B: Follow & Profile Endpoints', () => {
   let user1Token = '';
@@ -13,10 +14,7 @@ describe('Phase B: Follow & Profile Endpoints', () => {
   let user2Id = null;
 
   beforeAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-    await mongoose.connect(TEST_URI);
+    await connectTestDatabase();
 
     // Clean test users
     await User.deleteMany({ username: { $in: ['test_user_a', 'test_user_b'] } });
@@ -60,7 +58,7 @@ describe('Phase B: Follow & Profile Endpoints', () => {
       });
       await User.deleteMany({ _id: { $in: [user1Id, user2Id] } });
     }
-    await mongoose.disconnect();
+    await disconnectTestDatabase();
   });
 
   it('should prevent a user from following themselves', async () => {

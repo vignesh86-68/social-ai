@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
 export default function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary)' }}>
@@ -12,10 +12,11 @@ export default function AppLayout() {
 
       {/* Overlay for mobile */}
       {sidebarOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Close navigation"
           className="sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
-          style={{ display: 'none' }}
         />
       )}
 
@@ -28,11 +29,10 @@ export default function AppLayout() {
         transition: 'margin-left 0.25s ease',
       }} className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen((p) => !p)} />
-        <main style={{ flex: 1, padding: '1.5rem', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+        <main className="app-main" style={{ flex: 1, padding: '1.5rem', maxWidth: 800, margin: '0 auto', width: '100%' }}>
           <Outlet />
         </main>
       </div>
     </div>
   );
 }
-

@@ -9,9 +9,7 @@ const Follow = require('../src/models/Follow');
 const Like = require('../src/models/Like');
 const Bookmark = require('../src/models/Bookmark');
 const Notification = require('../src/models/Notification');
-
-// Dedicated isolated test database
-const TEST_URI = process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/social-ai-feed-test';
+const { connectTestDatabase, disconnectTestDatabase } = require('./testDatabase');
 
 describe('Phase C: Advanced Social Feed, Media, Hashtags & Interactions', () => {
   let userAToken = '';
@@ -25,10 +23,7 @@ describe('Phase C: Advanced Social Feed, Media, Hashtags & Interactions', () => 
 
   beforeAll(async () => {
     jest.setTimeout(30000);
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-    await mongoose.connect(TEST_URI);
+    await connectTestDatabase();
 
     // Clean test collections
     await Promise.all([
@@ -86,7 +81,7 @@ describe('Phase C: Advanced Social Feed, Media, Hashtags & Interactions', () => 
     } catch (e) {
       // Ignore cleanup error
     }
-    await mongoose.disconnect();
+    await disconnectTestDatabase();
   });
 
   // ─── 1. Post Creation & Hashtag / Mention Extraction ───────────────────────

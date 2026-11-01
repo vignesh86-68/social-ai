@@ -25,7 +25,7 @@ const clientUrl = () => {
 
 const sendVerificationEmail = async (to, username, token, userId) => {
   const link = `${clientUrl()}/verify-email?userId=${userId}&token=${token}`;
-  console.log(`\n📧 [DEV VERIFICATION EMAIL] For @${username} (${to}):\n🔗 ${link}\n`);
+  console.log(`\n📧 [DEV VERIFICATION EMAIL] Verification email prepared for @${username}.\n`);
   try {
     if (process.env.SMTP_USER && !process.env.SMTP_USER.includes('your_email')) {
       await getTransporter().sendMail({
@@ -49,7 +49,7 @@ const sendVerificationEmail = async (to, username, token, userId) => {
 
 const sendPasswordResetEmail = async (to, username, token, userId) => {
   const link = `${clientUrl()}/reset-password?userId=${userId}&token=${token}`;
-  console.log(`\n🔑 [DEV PASSWORD RESET EMAIL] For @${username} (${to}):\n🔗 ${link}\n`);
+  console.log(`\n🔑 [DEV PASSWORD RESET EMAIL] Password reset email prepared for @${username}.\n`);
   try {
     if (process.env.SMTP_USER && !process.env.SMTP_USER.includes('your_email')) {
       await getTransporter().sendMail({
@@ -95,4 +95,32 @@ const sendAdminLoginAlert = async (adminEmail, username, ip, userAgent) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendAdminLoginAlert };
+const sendAdminInvitationEmail = async (to, token) => {
+  const link = `${clientUrl()}/admin/invitations/accept?token=${encodeURIComponent(token)}`;
+  try {
+    if (process.env.SMTP_USER && !process.env.SMTP_USER.includes('your_email')) {
+      await getTransporter().sendMail({
+        from: from(),
+        to,
+        subject: 'Your SOCIAL AI administrator invitation',
+        html: `
+          <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;padding:32px">
+            <h2 style="color:#6366f1">SOCIAL AI Command Centre</h2>
+            <p>You have been invited to create an administrator account.</p>
+            <a href="${link}" style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Accept invitation</a>
+            <p style="margin-top:24px;color:#6b7280;font-size:13px">This invitation expires in 24 hours and can only be used once.</p>
+          </div>`,
+      });
+    }
+  } catch (err) {
+    console.warn('Could not deliver administrator invitation email via SMTP:', err.message);
+    throw err;
+  }
+};
+
+module.exports = {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendAdminLoginAlert,
+  sendAdminInvitationEmail,
+};

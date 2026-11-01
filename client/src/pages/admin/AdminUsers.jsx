@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminAPI } from '../../api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { UserCheck, UserX, Shield, Search } from 'lucide-react';
 
 export default function AdminUsers() {
@@ -9,6 +10,7 @@ export default function AdminUsers() {
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -27,7 +29,11 @@ export default function AdminUsers() {
   }, [fetchUsers]);
 
   const handleToggleSuspend = async (user) => {
-    const isSuspended = user.isSuspended;
+    if (user._id === currentUser?._id) {
+      toast({ message: 'You cannot suspend or reactivate your own administrator account', type: 'error' });
+      return;
+    }
+    const isSuspended = !user.isActive;
     const actionPrompt = isSuspended
       ? `Reactivate account for @${user.username}?`
       : `Provide suspension reason for @${user.username}:`;
@@ -37,7 +43,7 @@ export default function AdminUsers() {
       try {
         await adminAPI.reactivateUser(user._id);
         toast({ message: `@${user.username} reactivated`, type: 'success' });
-        setUsers(users.map(u => u._id === user._id ? { ...u, isSuspended: false, suspendedReason: null } : u));
+        setUsers(users.map(u => u._id === user._id ? { ...u, isActive: true, suspendedReason: null } : u));
       } catch (err) {
         toast({ message: 'Reactivation failed', type: 'error' });
       }
@@ -47,7 +53,7 @@ export default function AdminUsers() {
       try {
         await adminAPI.suspendUser(user._id, { reason });
         toast({ message: `@${user.username} suspended`, type: 'info' });
-        setUsers(users.map(u => u._id === user._id ? { ...u, isSuspended: true, suspendedReason: reason } : u));
+        setUsers(users.map(u => u._id === user._id ? { ...u, isActive: false, suspendedReason: reason } : u));
       } catch (err) {
         toast({ message: 'Suspension failed', type: 'error' });
       }
@@ -99,6 +105,7 @@ export default function AdminUsers() {
                 <th style={{ padding: '0.75rem 1rem' }}>Email</th>
                 <th style={{ padding: '0.75rem 1rem' }}>Role</th>
                 <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Joined</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -109,6 +116,7 @@ export default function AdminUsers() {
                     <strong>{u.displayName || u.username}</strong>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{u.username}</div>
                   </td>
+                  <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{u.email}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <span style={{
@@ -128,10 +136,10 @@ export default function AdminUsers() {
                       borderRadius: 10,
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      background: u.isSuspended ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                      color: u.isSuspended ? '#ef4444' : '#22c55e'
+                      background: !u.isActive ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                      color: !u.isActive ? '#ef4444' : '#22c55e'
                     }}>
-                      {u.isSuspended ? 'Suspended' : 'Active'}
+                      {!u.isActive ? 'Suspended' : 'Active'}
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
@@ -142,10 +150,10 @@ export default function AdminUsers() {
                         style={{
                           fontSize: '0.75rem',
                           padding: '4px 8px',
-                          color: u.isSuspended ? '#22c55e' : '#ef4444'
+                          color: !u.isActive ? '#22c55e' : '#ef4444'
                         }}
                       >
-                        {u.isSuspended ? 'Reactivate' : 'Suspend'}
+                        {!u.isActive ? 'Reactivate' : 'Suspend'}
                       </button>
                     )}
                   </td>
@@ -158,4 +166,3 @@ export default function AdminUsers() {
     </div>
   );
 }
-

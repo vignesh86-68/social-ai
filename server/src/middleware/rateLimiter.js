@@ -23,10 +23,10 @@ const authLimiter = createLimiter(
   'Too many authentication attempts. Please wait 15 minutes before trying again.'
 );
 
-// AI endpoints – prevent excessive API spend
+// AI endpoints – prevent excessive API spend while permitting active workflow testing
 const aiLimiter = createLimiter(
   60 * 1000, // 1 min
-  5,
+  20, // 20 requests per min
   'AI request limit reached. Please wait a moment before making another request.'
 );
 

@@ -35,7 +35,7 @@ const updateProfileSchema = z.object({
 });
 
 const aiContentSchema = z.object({
-  action: z.enum(['generate', 'improve', 'rewrite', 'grammar', 'shorten', 'expand', 'hashtags', 'headlines', 'quality']).optional(),
+  action: z.enum(['generate', 'improve', 'rewrite', 'grammar', 'shorten', 'expand', 'hashtags', 'headlines', 'quality', 'dna']).optional(),
   mode: z.string().optional(), // alias for action
   topic: z.string().max(1000).optional(),
   content: z.string().max(5000).optional(),
@@ -55,6 +55,16 @@ const aiReplySchema = z.object({
   tone: z.string().optional(),
 });
 
+const signalPostSchema = z.object({
+  postId: z.string().regex(/^[a-f\d]{24}$/i, 'A valid post ID is required'),
+  save: z.boolean().optional().default(false),
+});
+
+const signalHistorySchema = z.object({
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+});
+
 module.exports = {
   createPostSchema,
   updatePostSchema,
@@ -63,4 +73,6 @@ module.exports = {
   aiContentSchema,
   aiSummarySchema,
   aiReplySchema,
+  signalPostSchema,
+  signalHistorySchema,
 };
