@@ -35,8 +35,9 @@ jest.mock('@google/generative-ai', () => ({
 }));
 
 const originalGeminiModel = process.env.GEMINI_MODEL;
-process.env.GEMINI_MODEL = 'gemini-3.8-flash';
+process.env.GEMINI_MODEL = ' models/gemini-3.8-flash ';
 const app = require('../app');
+const { normalizeGeminiModel } = require('../src/controllers/aiController');
 const User = require('../src/models/User');
 const Post = require('../src/models/Post');
 const Comment = require('../src/models/Comment');
@@ -44,6 +45,22 @@ const AIAnalysis = require('../src/models/AIAnalysis');
 const { connectTestDatabase, stopTestDatabase } = require('./testDatabase');
 
 jest.setTimeout(60000);
+
+describe('Gemini model configuration', () => {
+  test('normalizes a plain model ID and a single models/ prefix', () => {
+    expect(normalizeGeminiModel('gemini-3.8-flash')).toBe('gemini-3.8-flash');
+    expect(normalizeGeminiModel('  models/gemini-3.8-flash  ')).toBe('gemini-3.8-flash');
+  });
+
+  test.each([
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash',
+    'models/models/gemini-3.8-flash',
+    '',
+    null,
+  ])('rejects malformed model configuration: %s', (model) => {
+    expect(() => normalizeGeminiModel(model)).toThrow('GEMINI_MODEL must be a model identifier');
+  });
+});
 
 const signIn = async (email, username) => {
   const registration = await request(app).post('/api/auth/register').send({

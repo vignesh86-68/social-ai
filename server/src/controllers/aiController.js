@@ -9,6 +9,30 @@ const ApiError = require('../utils/ApiError');
 const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const FALLBACK_MODEL = 'gemini-2.5-flash';
 
+const normalizeGeminiModel = (configuredModel) => {
+  if (typeof configuredModel !== 'string') {
+    throw new Error('GEMINI_MODEL must be a model identifier');
+  }
+
+  let model = configuredModel.trim();
+  if (model.startsWith('models/')) model = model.slice('models/'.length);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(model)) {
+    throw new Error('GEMINI_MODEL must be a model identifier');
+  }
+
+  return model;
+};
+
+const getPrimaryModel = () => {
+  try {
+    return normalizeGeminiModel(PRIMARY_MODEL);
+  } catch {
+    throw ApiError.badRequest(
+      'GEMINI_MODEL must be a model ID such as gemini-3.8-flash, without an API URL or models/ prefix.',
+    );
+  }
+};
+
 const signalResultSchema = z.object({
   summary: z.string().min(1),
   themes: z.array(z.string()).max(10),
@@ -94,12 +118,13 @@ const executeGemini = async (prompt, maxTokens = 1024) => {
     throw ApiError.badRequest('Google Gemini API Key is not configured. Please add GEMINI_API_KEY to server/.env');
   }
 
+  const primaryModel = getPrimaryModel();
   const genAI = new GoogleGenerativeAI(apiKey.trim());
 
   // Attempt 1: Primary Model
   try {
     const model = genAI.getGenerativeModel({
-      model: PRIMARY_MODEL,
+      model: primaryModel,
       generationConfig: { maxOutputTokens: maxTokens },
     });
     const result = await model.generateContent(prompt);
@@ -110,7 +135,7 @@ const executeGemini = async (prompt, maxTokens = 1024) => {
     if (errMsg.includes('503') || errMsg.includes('404') || errMsg.includes('high demand')) {
       try {
         const fallback = genAI.getGenerativeModel({
-          model: FALLBACK_MODEL,
+          model: normalizeGeminiModel(FALLBACK_MODEL),
           generationConfig: { maxOutputTokens: maxTokens },
         });
         const result = await fallback.generateContent(prompt);
@@ -171,10 +196,12 @@ const saveAnalysis = async (req, type, postId, result, inputCharacters, outputCh
     post: postId || null,
     type,
     result,
-    model: PRIMARY_MODEL,
+    model: getPrimaryModel(),
     usage: { inputCharacters, outputCharacters },
   });
 };
+
+exports.normalizeGeminiModel = normalizeGeminiModel;
 
 // ─── 1. AI Content Intelligence Studio ─────────────────────────────────────────
 exports.contentStudio = async (req, res, next) => {
